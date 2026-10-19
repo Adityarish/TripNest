@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "TripNest Launcher",
+  "version": "1.0.0",
+  "description": "Open your private TripNest from Chrome.",
+  "action": { "default_title": "Open TripNest", "default_popup": "popup.html" },
+  "permissions": ["storage", "tabs"],
+  "icons": { "128": "icon.svg" }
+}

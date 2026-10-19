@@ -1,0 +1,7 @@
+node_modules
+.next
+.git
+.env*
+.tripnest-mock-drive
+playwright-report
+test-results

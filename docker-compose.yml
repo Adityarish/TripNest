@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: tripnest
+      POSTGRES_USER: tripnest
+      POSTGRES_PASSWORD: tripnest
+    ports:
+      - "5432:5432"
+    volumes:
+      - tripnest_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tripnest -d tripnest"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      args:
+        TRIPNEST_PROVIDER_MODE: ${TRIPNEST_PROVIDER_MODE:-local}
+        NEXT_PUBLIC_TRIPNEST_PROVIDER_MODE: ${NEXT_PUBLIC_TRIPNEST_PROVIDER_MODE:-local}
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://tripnest:tripnest@db:5432/tripnest?schema=public
+      MOCK_DRIVE_PATH: /app/.tripnest-mock-drive
+    ports:
+      - "3000:3000"
+    volumes:
+      - tripnest_mock_drive:/app/.tripnest-mock-drive
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["sh", "-c", "npx prisma migrate deploy && npm run db:seed && npm start"]
+
+volumes:
+  tripnest_postgres:
+  tripnest_mock_drive:

@@ -1,0 +1,211 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProvisioningState {
+  PENDING
+  PROVISIONING
+  READY
+  FAILED
+}
+
+enum StorageType {
+  MY_DRIVE_FOLDER
+  SHARED_DRIVE
+  MOCK
+}
+
+enum CredentialType {
+  OAUTH
+  SERVICE_ACCOUNT
+  MOCK
+}
+
+enum HealthStatus {
+  UNKNOWN
+  HEALTHY
+  DEGRADED
+  UNAVAILABLE
+}
+
+enum FileCategory {
+  PHOTOS
+  VIDEOS
+  DOCUMENTS
+  OTHER
+}
+
+enum UploadState {
+  CREATED
+  UPLOADING
+  COMPLETED
+  FAILED
+  EXPIRED
+  CANCELLED
+}
+
+enum MigrationState {
+  PENDING
+  COPYING
+  VERIFYING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id                    String            @id @default(uuid()) @db.Uuid
+  clerkUserId           String            @unique
+  email                 String?
+  displayName           String?
+  avatarUrl              String?
+  active                 Boolean           @default(true)
+  deletedAt              DateTime?
+  storageRootId          String?           @db.Uuid
+  storageRoot            StorageRoot?      @relation(fields: [storageRootId], references: [id])
+  driveFolderId          String?
+  provisioningState     ProvisioningState @default(PENDING)
+  provisioningError     String?
+  provisioningStartedAt DateTime?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+  trips                  Trip[]
+  uploads                UploadSession[]
+  files                  MediaFile[]
+  migrations             RootMigration[]
+
+  @@index([storageRootId])
+}
+
+model CredentialProfile {
+  id                   String         @id @default(uuid()) @db.Uuid
+  name                 String
+  type                 CredentialType
+  encryptedCredentials String?
+  googleAccountEmail   String?
+  revokedAt            DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  roots                StorageRoot[]
+}
+
+model StorageRoot {
+  id                    String             @id @default(uuid()) @db.Uuid
+  displayName           String
+  googleFolderId        String             @unique
+  folderUrl             String?
+  storageType           StorageType
+  credentialProfileId   String             @db.Uuid
+  credentialProfile     CredentialProfile  @relation(fields: [credentialProfileId], references: [id])
+  enabled               Boolean            @default(false)
+  writable              Boolean            @default(false)
+  priority              Int                @default(100)
+  assignedUserCount     Int                @default(0)
+  lastHealthStatus      HealthStatus       @default(UNKNOWN)
+  lastHealthCheckedAt   DateTime?
+  lastHealthMessage     String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  users                 User[]
+  sourceMigrations      RootMigration[]     @relation("MigrationSource")
+  destinationMigrations RootMigration[]     @relation("MigrationDestination")
+
+  @@index([enabled, writable, lastHealthStatus, assignedUserCount, priority])
+}
+
+model Trip {
+  id                String         @id @default(uuid()) @db.Uuid
+  userId            String         @db.Uuid
+  user              User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  name              String
+  slug              String
+  startDate         DateTime       @db.Date
+  endDate           DateTime?      @db.Date
+  description       String?
+  location          String?
+  isFavorite        Boolean        @default(false)
+  coverFileId       String?        @unique @db.Uuid
+  driveFolderId     String         @unique
+  photosFolderId    String
+  videosFolderId    String
+  documentsFolderId String
+  otherFolderId     String
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  files             MediaFile[]    @relation("TripFiles")
+  coverFile         MediaFile?     @relation("TripCover", fields: [coverFileId], references: [id])
+  uploads           UploadSession[]
+
+  @@index([userId, startDate])
+}
+
+model MediaFile {
+  id            String       @id @default(uuid()) @db.Uuid
+  userId        String       @db.Uuid
+  user          User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  tripId        String       @db.Uuid
+  trip          Trip         @relation("TripFiles", fields: [tripId], references: [id], onDelete: Restrict)
+  driveFileId   String       @unique
+  name          String
+  mimeType      String
+  sizeBytes     BigInt
+  category      FileCategory
+  checksumMd5   String?
+  width         Int?
+  height        Int?
+  durationMs    Int?
+  isFavorite    Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  coverForTrip  Trip?        @relation("TripCover")
+
+  @@index([userId, tripId, category])
+  @@index([userId, tripId, isFavorite])
+}
+
+model UploadSession {
+  id                  String      @id @default(uuid()) @db.Uuid
+  userId              String      @db.Uuid
+  user                User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tripId              String      @db.Uuid
+  trip                Trip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  originalName        String
+  mimeType            String
+  sizeBytes           BigInt
+  category            FileCategory
+  state               UploadState @default(CREATED)
+  uploadedBytes       BigInt      @default(0)
+  remoteSessionUrlEnc String?
+  driveFileId         String?
+  errorMessage        String?
+  expiresAt           DateTime
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  @@index([userId, state])
+}
+
+model WebhookEvent {
+  id          String   @id
+  type        String
+  processedAt DateTime @default(now())
+}
+
+model RootMigration {
+  id                String         @id @default(uuid()) @db.Uuid
+  userId            String         @db.Uuid
+  user              User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  sourceRootId      String         @db.Uuid
+  sourceRoot        StorageRoot    @relation("MigrationSource", fields: [sourceRootId], references: [id])
+  destinationRootId String         @db.Uuid
+  destinationRoot   StorageRoot    @relation("MigrationDestination", fields: [destinationRootId], references: [id])
+  state             MigrationState @default(PENDING)
+  errorMessage      String?
+  requestedBy       String
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}

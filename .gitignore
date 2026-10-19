@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Next.js and build output
+.next/
+.vercel/
+public/sw.js
+public/sw.js.map
+*.tsbuildinfo
+tripnest-extension.zip
+
+# Local configuration and data
+.env*
+!.env.example
+.tripnest-mock-drive/
+
+# Tests and logs
+coverage/
+playwright-report/
+test-results/
+*.log
+
+# Editor and operating-system files
+.DS_Store
+.idea/
+.vscode/
