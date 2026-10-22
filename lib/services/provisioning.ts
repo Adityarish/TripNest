@@ -6,6 +6,13 @@ import { isLocalMode } from "@/lib/env";
 import { tripFolderName } from "@/lib/storage-utils";
 import type { Actor } from "@/lib/auth/server";
 
+export class NoWritableStorageRootError extends Error {
+  constructor() {
+    super("No healthy writable storage root is available. Ask an administrator to configure storage.");
+    this.name = "NoWritableStorageRootError";
+  }
+}
+
 async function ensureLocalRoot() {
   if (!isLocalMode) return;
   const profile = await db.credentialProfile.upsert({
@@ -100,7 +107,7 @@ async function reserveRoot(user: User) {
           where: { enabled: true, writable: true, lastHealthStatus: "HEALTHY" },
           orderBy: [{ assignedUserCount: "asc" }, { priority: "asc" }, { id: "asc" }],
         });
-        if (!root) throw new Error("No healthy writable storage root is available. Ask an administrator to configure storage.");
+        if (!root) throw new NoWritableStorageRootError();
         await tx.storageRoot.update({ where: { id: root.id }, data: { assignedUserCount: { increment: 1 } } });
         return tx.user.update({ where: { id: user.id }, data: { storageRootId: root.id, provisioningState: "PENDING", provisioningStartedAt: null, provisioningError: null } });
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
