@@ -32,6 +32,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
     if (!destinationFolder?.writable) return NextResponse.json({ error: "Destination credential cannot write to the user folder" }, { status: 409 });
     await db.$transaction([
       db.user.update({ where: { id: migration.userId }, data: { storageRootId: migration.destinationRootId } }),
+      db.trip.updateMany({ where: { userId: migration.userId, storageRootId: migration.sourceRootId }, data: { storageRootId: migration.destinationRootId } }),
       db.storageRoot.update({ where: { id: migration.sourceRootId }, data: { assignedUserCount: { decrement: 1 } } }),
       db.storageRoot.update({ where: { id: migration.destinationRootId }, data: { assignedUserCount: { increment: 1 } } }),
       db.rootMigration.update({ where: { id: migration.id }, data: { state: "COMPLETED", errorMessage: "Folder confirmed at destination root" } }),

@@ -7,8 +7,9 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import Link from "next/link";
 
-export function TripForm() {
+export function TripForm({ personalConnected = false, allowPersonal = true, sharedAvailable = true }: { personalConnected?: boolean; allowPersonal?: boolean; sharedAvailable?: boolean }) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -20,7 +21,7 @@ export function TripForm() {
     let response: Response;
     let result: { id?: string; error?: string };
     try {
-      response = await fetch("/api/trips", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: data.get("name"), startDate: data.get("startDate"), endDate: data.get("endDate"), location: data.get("location"), description: data.get("description") }) });
+      response = await fetch("/api/trips", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: data.get("name"), storage: data.get("storage"), startDate: data.get("startDate"), endDate: data.get("endDate"), location: data.get("location"), description: data.get("description") }) });
       result = await response.json();
     } catch {
       setPending(false); setError("Could not reach TripNest. Check your connection and try again."); return;
@@ -56,6 +57,8 @@ export function TripForm() {
         <div className="mb-6 flex items-start justify-between"><div><p className="eyebrow">A new chapter</p><h2 className="mt-2 font-display text-3xl">Create a trip</h2></div><Button type="button" variant="ghost" size="icon" aria-label="Close" onClick={() => setOpen(false)}><X /></Button></div>
         <div className="space-y-4">
           <label className="field"><span>Trip name</span><Input name="name" placeholder="Monsoon in Munnar" required autoFocus /></label>
+          <label className="field"><span>Store this trip in</span><select name="storage" defaultValue={sharedAvailable ? "universal" : "personal"} className="h-11 w-full rounded-xl border border-ink/15 bg-white px-3 text-sm text-ink"><option value="universal" disabled={!sharedAvailable}>Universal Drive{sharedAvailable ? " (default)" : " — unavailable"}</option>{allowPersonal && <option value="personal" disabled={!personalConnected}>My Google Drive{personalConnected ? "" : " — connect first"}</option>}</select></label>
+          {allowPersonal && !personalConnected && <p className="-mt-2 text-xs text-ink/55">Want to use your own storage? <Link href="/storage" className="font-semibold underline">Connect your Google Drive</Link> first.</p>}
           <div className="grid grid-cols-2 gap-3">
             <label className="field"><span className="flex items-center gap-1.5"><CalendarDays className="size-3.5" /> Start date</span><Input name="startDate" type="date" defaultValue={format(new Date(), "yyyy-MM-dd")} required /></label>
             <label className="field"><span>End date <i>optional</i></span><Input name="endDate" type="date" /></label>

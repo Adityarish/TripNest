@@ -5,7 +5,6 @@ import { isAdmin, requireActor } from "@/lib/auth/server";
 import { env, googleOAuthRedirectUri } from "@/lib/env";
 import { signState } from "@/lib/crypto";
 import { apiError } from "@/lib/http";
-import { assertPersonalDriveCanConnect, personalDriveUser } from "@/lib/services/personal-storage";
 
 export async function GET(request: Request) {
   try {
@@ -13,8 +12,6 @@ export async function GET(request: Request) {
     const personal = new URL(request.url).searchParams.get("storage") === "personal";
     if (personal) {
       if (isAdmin(actor.clerkUserId)) throw new Response("Use the admin storage console to connect a Drive account.", { status: 403 });
-      const { user, root } = await personalDriveUser(actor);
-      await assertPersonalDriveCanConnect(user, root?.id);
     } else if (!isAdmin(actor.clerkUserId)) {
       throw new Response("Forbidden", { status: 403 });
     }

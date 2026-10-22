@@ -1,6 +1,6 @@
 # TripNest
 
-TripNest is a private trip-media organizer built with Next.js App Router, Clerk, PostgreSQL/Prisma, and Google Drive API v3. Each application user is permanently assigned to one healthy storage root, receives an idempotently provisioned private folder, and can keep full-quality trip originals in a predictable Drive hierarchy.
+TripNest is a private trip-media organizer built with Next.js App Router, Clerk, PostgreSQL/Prisma, and Google Drive API v3. Each trip records its storage root, so shared and personal Drive trips can coexist in one account while originals stay in their chosen Drive hierarchy.
 
 The full product and engineering requirements are documented in [docs/requirements.md](docs/requirements.md).
 
@@ -9,7 +9,7 @@ The full product and engineering requirements are documented in [docs/requiremen
 - Clerk email/Google authentication, protected pages and APIs, profile UI, sign-out, and signature-verified idempotent Clerk webhooks
 - balanced assignment across up to five ordinary My Drive folders or Workspace Shared Drive roots
 - encrypted OAuth refresh-token/service-account credential profiles and an admin-only setup console
-- a personal Google Drive connection for non-admin users, with a private TripNest folder under their own My Drive
+- a personal Google Drive connection for non-admin users, with a private TripNest folder under their own My Drive and a per-trip storage choice
 - recoverable first-login provisioning using private internal UUID folder names and Drive `appProperties`
 - trip creation with dates, location, story, optional cover, and Photos/Videos/Documents/Other subfolders
 - chunked Google resumable uploads proxied through Node routes; session URLs never reach browser storage
@@ -67,7 +67,7 @@ If the dashboard says **Storage setup needed**, sign in with a Clerk user whose 
 
 If Google shows `redirect_uri_mismatch`, open the **Google Auth platform → Clients** page for the OAuth client whose ID is in Render's `GOOGLE_CLIENT_ID`. Add the exact redirect URI shown at the top of `/admin/storage` under **Authorized redirect URIs**. For the default Render hostname in this guide, it is `https://tripnest-iepj.onrender.com/api/auth/callback/google` with no trailing slash. It must be added to the Google Drive OAuth client, which is separate from Clerk's Google sign-in configuration.
 
-Non-admin users can open **My Drive** in the navigation bar and choose **Connect Google Drive**. TripNest requests offline Drive access, creates and verifies a `TripNest` folder in that user's My Drive, and then assigns their TripNest account to that folder. Reconnection must use the same Google account. Existing trips remain on their original root; users with existing trip, file, or upload records must have those records migrated before switching storage. Personal roots do not count toward the five administrator-managed roots and are never offered to other users.
+Non-admin users can open **My Drive** in the navigation bar and choose **Connect Google Drive**. TripNest requests offline Drive access and creates and verifies a `TripNest` folder in that user's My Drive. On the new-trip form, **Universal Drive** is selected by default when available; a user with a connected personal Drive can instead choose **My Google Drive**. If shared storage is unavailable, the form selects the connected personal Drive. Existing trips remain on their original root, including trips created before personal Drive was connected. Reconnection must use the same Google account. Personal roots do not count toward the five administrator-managed roots and are never offered to other users. Files can move between trips on the same root; cross-root moves are blocked to avoid misplacing originals.
 
 The Blueprint starts with Render's free web and database plans for a low-friction demo. Render's free PostgreSQL database is temporary and expires after 30 days; select a paid database plan in Render before storing data you need to keep. The free web service may sleep when idle.
 
@@ -81,7 +81,7 @@ The owner then visits `/admin/storage`, connects an OAuth Drive account with off
 
 `GOOGLE_DRIVE_ROOT_1_URL` through `_5_URL` are imported and write-tested when the storage console opens after a suitable credential is connected. `GOOGLE_SERVICE_ACCOUNT_JSON_BASE64` is optional and must contain Base64-encoded service-account JSON when used. Leave it empty for OAuth storage accounts. Service accounts must be actual Shared Drive members. Personal My Drive storage should use OAuth from a storage account that owns or can write to the folder; merely sharing a personal folder with a service account does not provide that account personal storage quota.
 
-One credential profile can serve all five roots when it has access. Distinct accounts can be connected as separate encrypted OAuth profiles. A user's trips remain on the assigned root. Root migrations are explicit: the app checks both credentials, moves the original folder in Drive, then updates the database. If the database step fails, it attempts to move the folder back; an ambiguous result is held for administrator reconciliation in the storage console. For different accounts, share both roots with one connected storage account before migrating so Drive can move the originals without a lossy relay.
+One credential profile can serve all five roots when it has access. Distinct accounts can be connected as separate encrypted OAuth profiles. Each trip remains on the root selected at creation. Shared-root migrations are explicit: the app checks both credentials, moves the shared user folder in Drive, then updates the user assignment and affected trips in the database. If the database step fails, it attempts to move the folder back; an ambiguous result is held for administrator reconciliation in the storage console. For different accounts, share both roots with one connected storage account before migrating so Drive can move the originals without a lossy relay.
 
 Docker Compose passes the public Clerk key, provider mode, and public app URL as build arguments because Next.js embeds public variables at build time. Set both provider-mode variables before building a production image; do not pass Clerk or Google secrets as build arguments. The Compose service receives private credentials only at runtime through `.env`.
 

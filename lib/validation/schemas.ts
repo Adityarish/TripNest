@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const tripInput = z.object({
   name: z.string().trim().min(1).max(120),
+  storage: z.enum(["universal", "personal"]).default("universal"),
   startDate: z.coerce.date(),
   endDate: z.preprocess((value) => value === "" ? null : value, z.coerce.date().optional().nullable()),
   description: z.preprocess((value) => value === "" ? null : value, z.string().trim().max(2000).optional().nullable()),

@@ -72,7 +72,7 @@ export async function ensureUser(actor: Actor) {
 
 async function ensureTripFolders(user: User, drive: Awaited<ReturnType<typeof driveFor>>) {
   if (!user.driveFolderId) throw new Error("User storage folder is missing");
-  const trips = await db.trip.findMany({ where: { userId: user.id } });
+  const trips = await db.trip.findMany({ where: { userId: user.id, storageRootId: user.storageRootId! } });
   for (const trip of trips) {
     const properties = { tripnestTripId: trip.id, tripnestUserId: user.id };
     const tripFolder = await drive.findFolder(user.driveFolderId, properties)
@@ -120,6 +120,17 @@ async function reserveRoot(user: User) {
 
 export async function ensureProvisioned(actor: Actor) {
   let user = await ensureUser(actor);
+  if (user.storageRootId) {
+    const assignedRoot = await db.storageRoot.findUniqueOrThrow({ where: { id: user.storageRootId }, select: { ownerUserId: true } });
+    if (assignedRoot.ownerUserId) {
+      user = await db.$transaction(async (tx) => {
+        const fresh = await tx.user.findUniqueOrThrow({ where: { id: user.id } });
+        if (fresh.storageRootId !== user.storageRootId) return fresh;
+        await tx.storageRoot.updateMany({ where: { id: user.storageRootId!, assignedUserCount: { gt: 0 } }, data: { assignedUserCount: { decrement: 1 } } });
+        return tx.user.update({ where: { id: user.id }, data: { storageRootId: null, driveFolderId: null, provisioningState: "PENDING", provisioningStartedAt: null, provisioningError: null } });
+      });
+    }
+  }
   if (user.provisioningState === "READY" && user.driveFolderId) return user;
   user = await reserveRoot(user);
   const claimed = await db.user.updateMany({

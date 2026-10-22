@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
       if (!userFolder.writable) throw new Error("Destination credential cannot write to the moved user folder");
       await db.$transaction([
         db.user.update({ where: { id: user.id }, data: { storageRootId: destination.id } }),
+        db.trip.updateMany({ where: { userId: user.id, storageRootId: source.id }, data: { storageRootId: destination.id } }),
         db.storageRoot.update({ where: { id: source.id }, data: { assignedUserCount: { decrement: 1 } } }),
         db.storageRoot.update({ where: { id: destination.id }, data: { assignedUserCount: { increment: 1 } } }),
         db.rootMigration.update({ where: { id: migration.id }, data: { state: "COMPLETED" } }),

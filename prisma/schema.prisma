@@ -117,6 +117,7 @@ model StorageRoot {
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
   users                 User[]             @relation("AssignedRoot")
+  trips                 Trip[]             @relation("TripStorageRoot")
   sourceMigrations      RootMigration[]     @relation("MigrationSource")
   destinationMigrations RootMigration[]     @relation("MigrationDestination")
 
@@ -127,6 +128,8 @@ model Trip {
   id                String         @id @default(uuid()) @db.Uuid
   userId            String         @db.Uuid
   user              User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  storageRootId     String?        @db.Uuid
+  storageRoot       StorageRoot?   @relation("TripStorageRoot", fields: [storageRootId], references: [id], onDelete: Restrict)
   name              String
   slug              String
   startDate         DateTime       @db.Date
@@ -147,6 +150,7 @@ model Trip {
   uploads           UploadSession[]
 
   @@index([userId, startDate])
+  @@index([storageRootId])
 }
 
 model MediaFile {

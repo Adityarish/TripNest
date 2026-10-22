@@ -14,7 +14,8 @@ async function context(fileId: string) {
   const user = await ensureUser(await requireActor());
   const file = await db.mediaFile.findFirst({ where: { id: fileId, userId: user.id }, include: { trip: true } });
   if (!file) throw new Response("File not found", { status: 404 });
-  const root = await db.storageRoot.findUniqueOrThrow({ where: { id: user.storageRootId! }, include: { credentialProfile: true } });
+  if (!file.trip.storageRootId) throw new Response("Trip storage is unavailable", { status: 409 });
+  const root = await db.storageRoot.findUniqueOrThrow({ where: { id: file.trip.storageRootId }, include: { credentialProfile: true } });
   return { user, file, drive: await driveFor(root.credentialProfile) };
 }
 
@@ -24,6 +25,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const input = filePatchInput.parse(await request.json());
     const destination = input.tripId ? await db.trip.findFirst({ where: { id: input.tripId, userId: user.id } }) : file.trip;
     if (!destination) return NextResponse.json({ error: "Destination trip not found" }, { status: 404 });
+    if (destination.storageRootId !== file.trip.storageRootId) return NextResponse.json({ error: "Files can only move between trips using the same Drive storage" }, { status: 409 });
     const targetCategory = input.category ?? file.category;
     const oldParent = categoryFolder(file.trip, file.category);
     const newParent = categoryFolder(destination, targetCategory);

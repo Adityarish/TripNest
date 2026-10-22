@@ -12,6 +12,10 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
     const user = await db.user.findUnique({ where: { id: (await params).userId } });
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
     if (user.active || !user.deletedAt) return NextResponse.json({ error: "Cleanup is restricted to users deleted through a verified Clerk webhook" }, { status: 409 });
+    const personalRoot = await db.storageRoot.findUnique({ where: { ownerUserId: user.id }, select: { id: true } });
+    if (personalRoot && await db.trip.count({ where: { userId: user.id, storageRootId: personalRoot.id } })) {
+      return NextResponse.json({ error: "This account has personal Drive trips. Personal originals require a separate cleanup review." }, { status: 409 });
+    }
     if (!user.storageRootId || !user.driveFolderId) return NextResponse.json({ ok: true, alreadyClean: true });
     const root = await db.storageRoot.findUniqueOrThrow({ where: { id: user.storageRootId }, include: { credentialProfile: true } });
     await driveFor(root.credentialProfile).then((drive) => drive.deleteFile(user.driveFolderId!));

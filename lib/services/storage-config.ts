@@ -62,6 +62,7 @@ async function retireLocalMockStorage() {
     where: {
       id: { in: mockRootIds },
       users: { none: {} },
+      trips: { none: {} },
       sourceMigrations: { none: {} },
       destinationMigrations: { none: {} },
     },

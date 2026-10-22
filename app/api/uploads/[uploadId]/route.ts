@@ -61,7 +61,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
     const chunk = new Uint8Array(await request.arrayBuffer());
     if (chunk.byteLength !== end - start + 1) return NextResponse.json({ error: "Chunk length does not match Content-Range" }, { status: 400 });
-    const root = await db.storageRoot.findUniqueOrThrow({ where: { id: user.storageRootId! }, include: { credentialProfile: true } });
+    if (!upload.trip.storageRootId) throw new Response("Trip storage is unavailable", { status: 409 });
+    const root = await db.storageRoot.findUniqueOrThrow({ where: { id: upload.trip.storageRootId }, include: { credentialProfile: true } });
     const drive = await driveFor(root.credentialProfile);
     // The remote final chunk can succeed even if the database commit or response fails.
     // Recover by the stable upload ID before attempting to reuse an expired Drive session.
