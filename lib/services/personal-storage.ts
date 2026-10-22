@@ -17,7 +17,7 @@ export async function personalDriveUser(actor: Actor) {
 
 export async function connectPersonalDrive(actor: Actor, tokens: object, email: string, displayName?: string) {
   const { user, root: existingRoot, profile: existingProfile } = await personalDriveUser(actor);
-  if (existingProfile?.googleAccountEmail && existingProfile.googleAccountEmail !== email) {
+  if (existingProfile?.googleAccountEmail && existingProfile.googleAccountEmail.toLowerCase() !== email.toLowerCase()) {
     throw new Response("Reconnect the same Google account already used for your TripNest storage.", { status: 409 });
   }
   const profile = await db.credentialProfile.upsert({

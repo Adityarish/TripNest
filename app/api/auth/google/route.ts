@@ -5,6 +5,8 @@ import { isAdmin, requireActor } from "@/lib/auth/server";
 import { env, googleOAuthRedirectUri } from "@/lib/env";
 import { signState } from "@/lib/crypto";
 import { apiError } from "@/lib/http";
+import { db } from "@/lib/db";
+import { personalDriveUser } from "@/lib/services/personal-storage";
 
 export async function GET(request: Request) {
   try {
@@ -12,6 +14,11 @@ export async function GET(request: Request) {
     const personal = new URL(request.url).searchParams.get("storage") === "personal";
     if (personal) {
       if (isAdmin(actor.clerkUserId)) throw new Response("Use the admin storage console to connect a Drive account.", { status: 403 });
+      const { user, root, profile } = await personalDriveUser(actor);
+      if (!root || !profile?.googleAccountEmail) {
+        const access = await db.driveAccessRequest.findUnique({ where: { userId: user.id } });
+        if (access?.status !== "APPROVED") throw new Response("Request Google Drive access and wait for approval before connecting", { status: 403 });
+      }
     } else if (!isAdmin(actor.clerkUserId)) {
       throw new Response("Forbidden", { status: 403 });
     }

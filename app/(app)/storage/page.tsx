@@ -3,14 +3,19 @@ import { redirect } from "next/navigation";
 import { HardDrive, ShieldCheck } from "lucide-react";
 import { isAdmin, requireActor } from "@/lib/auth/server";
 import { personalDriveUser } from "@/lib/services/personal-storage";
+import { db } from "@/lib/db";
+import { DriveAccessRequestForm } from "@/components/drive-access-request-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function PersonalStoragePage() {
   const actor = await requireActor();
   if (isAdmin(actor.clerkUserId)) redirect("/admin/storage");
-  const { root, profile } = await personalDriveUser(actor);
+  const { user, root, profile } = await personalDriveUser(actor);
+  const access = await db.driveAccessRequest.findUnique({ where: { userId: user.id } });
   const connected = Boolean(root?.enabled && root.writable && root.lastHealthStatus === "HEALTHY" && profile?.encryptedCredentials && !profile.revokedAt);
+  const canReconnect = Boolean(root && profile?.googleAccountEmail);
+  const canConnect = canReconnect || access?.status === "APPROVED";
 
   return <div className="mx-auto max-w-3xl space-y-6">
     <section className="rounded-[2rem] bg-ink px-7 py-10 text-white sm:px-10">
@@ -21,8 +26,12 @@ export default async function PersonalStoragePage() {
     <section className="rounded-2xl border border-ink/10 bg-white p-7">
       <div className="flex items-center gap-3"><ShieldCheck className="size-5 text-sage" /><h2 className="font-semibold">{connected ? "Drive connected" : "Connect personal storage"}</h2></div>
       {connected && <p className="mt-3 text-sm text-ink/60">{profile?.googleAccountEmail ?? "Your Google account"} is connected and its TripNest folder is ready.</p>}
-      {!connected && <p className="mt-3 text-sm text-ink/60">Connect a Google account to create and verify your personal TripNest storage folder. Your existing trips stay where they are.</p>}
-      <Link href="/api/auth/google?storage=personal" className="mt-6 inline-flex rounded-full bg-coral px-6 py-3 text-sm font-semibold text-white hover:bg-coral/90">{connected ? "Reconnect Google Drive" : "Connect Google Drive"}</Link>
+      {!connected && <p className="mt-3 text-sm text-ink/60">Your existing trips stay where they are. New trips can use your Drive once it is connected.</p>}
+      {!canReconnect && access?.status === "PENDING" && <p className="mt-4 rounded-xl bg-sand p-4 text-sm text-ink/70">Request pending for <strong>{access.googleEmail}</strong>. The administrator will add it to Google&apos;s test-user list and review your request.</p>}
+      {!canReconnect && access?.status === "APPROVED" && <p className="mt-4 rounded-xl bg-sage/10 p-4 text-sm text-ink/70">Approved for <strong>{access.googleEmail}</strong>. Connect with this exact Google account.</p>}
+      {!canReconnect && access?.status === "DECLINED" && <p className="mt-4 text-sm text-ink/60">Your previous request was declined. You can submit another request.</p>}
+      {canConnect && <Link href="/api/auth/google?storage=personal" className="mt-6 inline-flex rounded-full bg-coral px-6 py-3 text-sm font-semibold text-white hover:bg-coral/90">{connected ? "Reconnect Google Drive" : "Connect Google Drive"}</Link>}
+      {!canConnect && <DriveAccessRequestForm initialEmail={access?.googleEmail ?? actor.email ?? ""} submitLabel={access?.status === "PENDING" ? "Update requested email" : undefined} />}
       {root?.folderUrl && <p className="mt-5 text-xs text-ink/45"><a href={root.folderUrl} target="_blank" rel="noreferrer" className="underline">Open your TripNest folder in Drive</a></p>}
     </section>
     <Link href="/dashboard" className="inline-block text-sm font-semibold text-ink/60 hover:text-ink">Back to your trips</Link>

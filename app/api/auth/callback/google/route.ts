@@ -32,6 +32,14 @@ export async function GET(request: NextRequest) {
     if (!merged.refresh_token) return NextResponse.json({ error: "Google did not issue offline access. Revoke the app in your Google account and reconnect." }, { status: 409 });
     if (personal) {
       if (!email) return NextResponse.json({ error: "Google did not return an account email." }, { status: 409 });
+      const { user, root, profile } = await personalDriveUser(actor);
+      const reconnectingSameAccount = Boolean(root && profile?.googleAccountEmail?.toLowerCase() === email.toLowerCase());
+      if (!reconnectingSameAccount) {
+        const access = await db.driveAccessRequest.findUnique({ where: { userId: user.id } });
+        if (access?.status !== "APPROVED" || access.googleEmail !== email.toLowerCase()) {
+          throw new Response("This Google account has not been approved for personal Drive access", { status: 403 });
+        }
+      }
       await connectPersonalDrive(actor, merged, email, about.data.user?.displayName ?? undefined);
       return NextResponse.redirect(new URL("/storage?connected=1", env.NEXT_PUBLIC_APP_URL));
     }
