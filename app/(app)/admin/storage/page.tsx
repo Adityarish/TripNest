@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { AdminConsole } from "@/components/admin-console";
 import { jsonSafe } from "@/lib/utils";
 import { syncEnvironmentStorageRoots } from "@/lib/services/storage-config";
+import { googleOAuthRedirectUri } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
@@ -17,5 +18,5 @@ export default async function StorageAdminPage() {
     db.user.findMany({ select: { id: true, displayName: true, email: true, storageRootId: true, active: true, deletedAt: true, driveFolderId: true }, orderBy: { createdAt: "desc" } }),
     db.rootMigration.findMany({ select: { id: true, userId: true, state: true, errorMessage: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 10 }),
   ]);
-  return <AdminConsole roots={jsonSafe(roots)} profiles={jsonSafe(profiles)} users={jsonSafe(users)} migrations={jsonSafe(migrations)} />;
+  return <AdminConsole roots={jsonSafe(roots)} profiles={jsonSafe(profiles)} users={jsonSafe(users)} migrations={jsonSafe(migrations)} googleRedirectUri={googleOAuthRedirectUri} />;
 }

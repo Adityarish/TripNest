@@ -21,6 +21,7 @@ const schema = z.object({
 
 export const env = schema.parse(process.env);
 export const isLocalMode = env.TRIPNEST_PROVIDER_MODE === "local";
+export const googleOAuthRedirectUri = new URL("/api/auth/callback/google", env.NEXT_PUBLIC_APP_URL).toString();
 
 export function assertAuthConfiguration() {
   if (env.TRIPNEST_PROVIDER_MODE !== env.NEXT_PUBLIC_TRIPNEST_PROVIDER_MODE) throw new Error("Server and public provider modes must match");

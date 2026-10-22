@@ -39,6 +39,16 @@ services:
         sync: false
       - key: APP_ENCRYPTION_KEY
         sync: false
+      - key: GOOGLE_DRIVE_ROOT_1_URL
+        sync: false
+      - key: GOOGLE_DRIVE_ROOT_2_URL
+        sync: false
+      - key: GOOGLE_DRIVE_ROOT_3_URL
+        sync: false
+      - key: GOOGLE_DRIVE_ROOT_4_URL
+        sync: false
+      - key: GOOGLE_DRIVE_ROOT_5_URL
+        sync: false
 
 databases:
   - name: tripnest-db

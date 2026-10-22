@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { requireAdmin } from "@/lib/auth/server";
-import { env } from "@/lib/env";
+import { env, googleOAuthRedirectUri } from "@/lib/env";
 import { decryptSecret, encryptSecret, verifyState } from "@/lib/crypto";
 import { db } from "@/lib/db";
 import { apiError } from "@/lib/http";
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     if (!code || !decoded) return NextResponse.json({ error: "Invalid OAuth callback" }, { status: 400 });
     const payload = JSON.parse(Buffer.from(decoded, "base64url").toString("utf8")) as { sub: string; iat: number };
     if (payload.sub !== actor.clerkUserId || Date.now() - payload.iat > 10 * 60 * 1000) return NextResponse.json({ error: "OAuth state expired or did not match" }, { status: 400 });
-    const oauth = new google.auth.OAuth2(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, `${env.NEXT_PUBLIC_APP_URL}/api/auth/callback/google`);
+    const oauth = new google.auth.OAuth2(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, googleOAuthRedirectUri);
     const { tokens } = await oauth.getToken(code);
     oauth.setCredentials(tokens);
     const drive = google.drive({ version: "v3", auth: oauth });
