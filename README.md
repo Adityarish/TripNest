@@ -56,6 +56,14 @@ Generated output such as `.next/`, `public/sw.js`, reports, coverage, and `tscon
 
 ## Production setup
 
+### Deploy on Render
+
+The repository includes a Render Blueprint in `render.yaml`. Push the repository to GitHub, then choose **New → Blueprint** in Render and select the repository. The Blueprint provisions the Next.js web service and PostgreSQL database, runs Prisma migrations at startup, and sets `NEXT_PUBLIC_APP_URL` from the generated Render URL.
+
+During Blueprint setup, provide the prompted Clerk publishable key, Clerk secret key, Clerk webhook signing secret, admin Clerk user IDs, Google OAuth client ID and secret, and a random 32-byte `APP_ENCRYPTION_KEY` encoded as 64 hexadecimal characters (`openssl rand -hex 32`). Keep these values in Render's environment settings. Do not put them in `render.yaml` or Git. Configure Clerk's webhook endpoint as `https://<your-render-host>/api/webhooks/clerk`, and add `https://<your-render-host>/api/auth/callback/google` as an authorized redirect URI in the Google OAuth client. In the app, connect the Google storage account and writable Drive root from `/admin/storage` after the first deploy.
+
+The Blueprint starts with Render's free web and database plans for a low-friction demo. Render's free PostgreSQL database is temporary and expires after 30 days; select a paid database plan in Render before storing data you need to keep. The free web service may sleep when idle.
+
 To test Clerk authentication locally after pulling development keys, run `npm run dev:clerk` and open `/sign-in`. This command enables Clerk for the development server without changing the local demo settings in `.env`. A working dashboard also needs PostgreSQL and a configured writable Google Drive root.
 
 Set both provider-mode variables to `clerk-google`, supply a PostgreSQL URL, Clerk keys/webhook secret, Google OAuth client, and a random 32-byte encryption key (`openssl rand -hex 32`). Use an HTTPS application URL when deployed; `http://localhost:3000` is accepted for local Docker testing. Set `ADMIN_CLERK_USER_IDS` to a comma-separated Clerk user-ID allowlist.

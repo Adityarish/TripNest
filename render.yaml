@@ -1,0 +1,48 @@
+services:
+  - type: web
+    name: tripnest
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci --no-audit --no-fund && npx prisma generate && npm run build
+    startCommand: npx prisma migrate deploy && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 24.13.0
+      - key: NODE_ENV
+        value: production
+      - key: TRIPNEST_PROVIDER_MODE
+        value: clerk-google
+      - key: NEXT_PUBLIC_TRIPNEST_PROVIDER_MODE
+        value: clerk-google
+      - key: NEXT_PUBLIC_APP_URL
+        fromService:
+          type: web
+          name: tripnest
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tripnest-db
+          property: connectionString
+      - key: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_WEBHOOK_SECRET
+        sync: false
+      - key: ADMIN_CLERK_USER_IDS
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: APP_ENCRYPTION_KEY
+        sync: false
+
+databases:
+  - name: tripnest-db
+    databaseName: tripnest
+    user: tripnest
+    plan: free
+    region: singapore
