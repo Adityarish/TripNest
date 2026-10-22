@@ -74,18 +74,18 @@ export async function syncEnvironmentStorageRoots() {
     const raw = Buffer.from(env.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64, "base64").toString("utf8");
     const serviceAccount = JSON.parse(raw) as { client_email?: string };
     if (!serviceAccount.client_email) throw new Error("Service-account JSON has no client email");
-    const existing = await db.credentialProfile.findFirst({ where: { type: "SERVICE_ACCOUNT", googleAccountEmail: serviceAccount.client_email } });
+    const existing = await db.credentialProfile.findFirst({ where: { ownerUserId: null, type: "SERVICE_ACCOUNT", googleAccountEmail: serviceAccount.client_email } });
     if (existing) await db.credentialProfile.update({ where: { id: existing.id }, data: { encryptedCredentials: encryptSecret(raw), revokedAt: null } });
     else await db.credentialProfile.create({ data: { name: "Workspace service account", type: "SERVICE_ACCOUNT", googleAccountEmail: serviceAccount.client_email, encryptedCredentials: encryptSecret(raw) } });
   }
   const urls = [1, 2, 3, 4, 5].map((index) => ({ index, url: process.env[`GOOGLE_DRIVE_ROOT_${index}_URL`] }))
     .filter((entry): entry is { index: number; url: string } => Boolean(entry.url));
   if (!urls.length) return;
-  const profiles = await db.credentialProfile.findMany({ where: { revokedAt: null, type: { in: ["OAUTH", "SERVICE_ACCOUNT"] } }, orderBy: { createdAt: "asc" } });
+  const profiles = await db.credentialProfile.findMany({ where: { ownerUserId: null, revokedAt: null, type: { in: ["OAUTH", "SERVICE_ACCOUNT"] } }, orderBy: { createdAt: "asc" } });
   for (const { index, url } of urls) {
     const folderId = extractDriveFolderId(url);
     if (await db.storageRoot.findUnique({ where: { googleFolderId: folderId } })) continue;
-    if (await db.storageRoot.count({ where: { storageType: { not: "MOCK" } } }) >= 5) {
+    if (await db.storageRoot.count({ where: { ownerUserId: null, storageType: { not: "MOCK" } } }) >= 5) {
       throw new Error("TripNest supports at most five configured Google Drive roots");
     }
     for (const profile of profiles) {

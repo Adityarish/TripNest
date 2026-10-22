@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
       db.storageRoot.findUniqueOrThrow({ where: { id: user.storageRootId }, include: { credentialProfile: true } }),
       db.storageRoot.findUniqueOrThrow({ where: { id: input.destinationRootId }, include: { credentialProfile: true } }),
     ]);
+    if (source.ownerUserId || destination.ownerUserId) return NextResponse.json({ error: "Personal Drive roots cannot be used in shared-root migrations" }, { status: 409 });
     if (!destination.enabled || !destination.writable) return NextResponse.json({ error: "Destination root is not enabled and writable" }, { status: 409 });
     const sourceDrive = await driveFor(source.credentialProfile);
     const destinationDrive = await driveFor(destination.credentialProfile);

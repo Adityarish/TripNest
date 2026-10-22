@@ -66,7 +66,9 @@ model User {
   active                 Boolean           @default(true)
   deletedAt              DateTime?
   storageRootId          String?           @db.Uuid
-  storageRoot            StorageRoot?      @relation(fields: [storageRootId], references: [id])
+  storageRoot            StorageRoot?      @relation("AssignedRoot", fields: [storageRootId], references: [id])
+  personalStorageRoot    StorageRoot?      @relation("PersonalRoot")
+  personalCredentialProfile CredentialProfile? @relation("PersonalCredential")
   driveFolderId          String?
   provisioningState     ProvisioningState @default(PENDING)
   provisioningError     String?
@@ -83,6 +85,8 @@ model User {
 
 model CredentialProfile {
   id                   String         @id @default(uuid()) @db.Uuid
+  ownerUserId          String?        @unique @db.Uuid
+  owner                User?          @relation("PersonalCredential", fields: [ownerUserId], references: [id], onDelete: Restrict)
   name                 String
   type                 CredentialType
   encryptedCredentials String?
@@ -95,6 +99,8 @@ model CredentialProfile {
 
 model StorageRoot {
   id                    String             @id @default(uuid()) @db.Uuid
+  ownerUserId           String?            @unique @db.Uuid
+  owner                 User?              @relation("PersonalRoot", fields: [ownerUserId], references: [id], onDelete: Restrict)
   displayName           String
   googleFolderId        String             @unique
   folderUrl             String?
@@ -110,7 +116,7 @@ model StorageRoot {
   lastHealthMessage     String?
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
-  users                 User[]
+  users                 User[]             @relation("AssignedRoot")
   sourceMigrations      RootMigration[]     @relation("MigrationSource")
   destinationMigrations RootMigration[]     @relation("MigrationDestination")
 

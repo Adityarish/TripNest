@@ -2,7 +2,7 @@ import "server-only";
 import { Readable } from "node:stream";
 import { google, type drive_v3 } from "googleapis";
 import { decryptSecret } from "@/lib/crypto";
-import { env } from "@/lib/env";
+import { env, googleOAuthRedirectUri } from "@/lib/env";
 import type { CredentialProfile } from "@prisma/client";
 import type { DriveProvider, FolderInfo, FolderProperties } from "@/lib/drive/types";
 
@@ -11,7 +11,7 @@ const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
 async function clientFor(profile: CredentialProfile) {
   if (profile.type === "OAUTH") {
     if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET || !profile.encryptedCredentials) throw new Error("OAuth storage profile is incomplete");
-    const auth = new google.auth.OAuth2(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, `${env.NEXT_PUBLIC_APP_URL}/api/auth/callback/google`);
+    const auth = new google.auth.OAuth2(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, googleOAuthRedirectUri);
     auth.setCredentials(JSON.parse(decryptSecret(profile.encryptedCredentials)));
     return auth;
   }

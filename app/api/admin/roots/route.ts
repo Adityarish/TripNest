@@ -13,8 +13,8 @@ export async function GET() {
   try {
     await requireAdmin();
     const [roots, profiles] = await Promise.all([
-      db.storageRoot.findMany({ include: { credentialProfile: { select: { id: true, name: true, type: true, googleAccountEmail: true, revokedAt: true } } }, orderBy: [{ priority: "asc" }, { id: "asc" }] }),
-      db.credentialProfile.findMany({ select: { id: true, name: true, type: true, googleAccountEmail: true, revokedAt: true }, orderBy: { createdAt: "desc" } }),
+      db.storageRoot.findMany({ where: { ownerUserId: null }, include: { credentialProfile: { select: { id: true, name: true, type: true, googleAccountEmail: true, revokedAt: true } } }, orderBy: [{ priority: "asc" }, { id: "asc" }] }),
+      db.credentialProfile.findMany({ where: { ownerUserId: null }, select: { id: true, name: true, type: true, googleAccountEmail: true, revokedAt: true }, orderBy: { createdAt: "desc" } }),
     ]);
     return NextResponse.json({ roots, profiles });
   } catch (error) { return apiError(error); }
@@ -24,8 +24,9 @@ export async function POST(request: NextRequest) {
   try {
     await requireAdmin();
     const input = rootInput.parse(await request.json());
-    if (await db.storageRoot.count({ where: { storageType: { not: "MOCK" } } }) >= 5) return NextResponse.json({ error: "TripNest supports at most five configured Google Drive roots" }, { status: 409 });
+    if (await db.storageRoot.count({ where: { ownerUserId: null, storageType: { not: "MOCK" } } }) >= 5) return NextResponse.json({ error: "TripNest supports at most five configured Google Drive roots" }, { status: 409 });
     const profile = await db.credentialProfile.findUniqueOrThrow({ where: { id: input.credentialProfileId } });
+    if (profile.ownerUserId) return NextResponse.json({ error: "Personal Drive credentials cannot be used for shared roots" }, { status: 403 });
     if (profile.revokedAt) return NextResponse.json({ error: "Reconnect this credential before assigning a root" }, { status: 409 });
     const folderId = extractDriveFolderId(input.folderUrl);
     const drive = await driveFor(profile);

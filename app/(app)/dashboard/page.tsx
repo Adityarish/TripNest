@@ -20,8 +20,8 @@ export default async function DashboardPage() {
     return <section className="mx-auto max-w-2xl rounded-[2rem] border border-ink/10 bg-white px-7 py-12 text-center shadow-[0_16px_50px_rgba(29,39,36,.05)] sm:px-12">
       <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-sand"><HardDrive className="size-6 text-coral" /></div>
       <h1 className="mt-6 font-display text-4xl">Storage setup needed</h1>
-      <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-ink/55">{admin ? "Connect a Google Drive account and add a writable storage folder before creating trips." : "Your trips will be available after an administrator connects a writable storage folder."}</p>
-      {admin && <Link href="/admin/storage" className="mt-7 inline-flex rounded-full bg-ink px-6 py-3 text-sm font-semibold text-white hover:bg-ink/90">Open storage settings</Link>}
+      <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-ink/55">{admin ? "Connect a Google Drive account and add a writable storage folder before creating trips." : "Connect your own Google Drive to start using TripNest storage."}</p>
+      <Link href={admin ? "/admin/storage" : "/storage"} className="mt-7 inline-flex rounded-full bg-ink px-6 py-3 text-sm font-semibold text-white hover:bg-ink/90">{admin ? "Open storage settings" : "Connect Google Drive"}</Link>
     </section>;
   }
   return <>

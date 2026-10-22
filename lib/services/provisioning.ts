@@ -104,7 +104,7 @@ async function reserveRoot(user: User) {
         const fresh = await tx.user.findUniqueOrThrow({ where: { id: user.id } });
         if (fresh.storageRootId) return fresh;
         const root = await tx.storageRoot.findFirst({
-          where: { enabled: true, writable: true, lastHealthStatus: "HEALTHY" },
+          where: { ownerUserId: null, enabled: true, writable: true, lastHealthStatus: "HEALTHY" },
           orderBy: [{ assignedUserCount: "asc" }, { priority: "asc" }, { id: "asc" }],
         });
         if (!root) throw new NoWritableStorageRootError();

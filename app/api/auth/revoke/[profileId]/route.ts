@@ -8,7 +8,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
   try {
     await requireAdmin();
     const profile = await db.credentialProfile.findUnique({ where: { id: (await params).profileId }, include: { roots: true } });
-    if (!profile) return NextResponse.json({ error: "Credential profile not found" }, { status: 404 });
+    if (!profile || profile.ownerUserId) return NextResponse.json({ error: "Credential profile not found" }, { status: 404 });
     if (profile.encryptedCredentials && profile.type === "OAUTH") {
       const tokens = JSON.parse(decryptSecret(profile.encryptedCredentials)) as { access_token?: string; refresh_token?: string };
       const token = tokens.refresh_token ?? tokens.access_token;
