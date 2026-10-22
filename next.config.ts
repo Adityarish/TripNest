@@ -18,7 +18,6 @@ const withSerwist = withSerwistInit({
 
 export default withSerwist({
   reactStrictMode: true,
-  output: "standalone",
   experimental: { serverActions: { bodySizeLimit: "2mb" } },
   serverExternalPackages: ["@prisma/client", "googleapis"],
   images: { remotePatterns: [{ protocol: "https", hostname: "lh3.googleusercontent.com" }] },
